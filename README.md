@@ -47,7 +47,7 @@
 
 3. **运行程序**：
    ```bash
-   python extraction_of_IdentityV_replays.py
+   python IdentityV_Replay_Parser_GUI.py
    ```
 
 ### 方式二：打包为独立可执行文件（无需 Python 环境）
@@ -59,7 +59,7 @@
 
 2. 使用以下命令打包（需包含 `bson` 等隐藏导入）：
    ```bash
-   pyinstaller --onefile --windowed --name "第五人格录像解析器" --hidden-import bson --hidden-import bson.objectid --hidden-import pymongo extraction_of_IdentityV_replays.py
+   pyinstaller --onefile --windowed --name "第五人格录像解析器" --hidden-import bson --hidden-import bson.objectid --hidden-import pymongo IdentityV_Replay_Parser_GUI.py
    ```
 
 3. 打包完成后，在 `dist` 文件夹中找到 `第五人格录像解析器.exe`，双击即可运行。建议将 exe 放在有写入权限的目录（如桌面、`D:\` 根目录）。
