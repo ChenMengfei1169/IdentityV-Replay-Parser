@@ -1,11 +1,12 @@
 # 第五人格录像解析器
 
-一个用于解析和管理《第五人格》游戏录像文件的图形界面工具。该工具可以扫描指定目录下的所有录像文件夹，提取对战信息（日期、时间、结果、地图、逃生人数等），支持单个录像导出为ZIP压缩包（文件名包含解析信息），批量导出统计数据为CSV，以及导入之前导出的ZIP文件并自动还原录像文件夹结构，同时更新游戏索引文件 `vmap.txt`。
+一个用于解析和管理《第五人格》游戏录像文件的工具，提供图形界面（GUI）和命令行界面（CLI）两种方式。该工具可以扫描指定目录下的所有录像文件夹，提取对战信息（日期、时间、结果、地图、逃生人数等），支持单个录像导出为ZIP压缩包（文件名包含解析信息），批量导出统计数据为CSV，以及导入之前导出的ZIP文件并自动还原录像文件夹结构，同时更新游戏索引文件 `vmap.txt`。
 
 ---
 
 ## 功能特性
 
+### GUI 版本
 - **解析录像信息**：自动扫描指定根目录下的所有录像文件夹（以哈希值命名），从 `game_info.txt` 中提取以下信息：
   - 游戏模式（终场狂欢、排位模式、匹配模式等）
   - 对战日期和时间
@@ -19,6 +20,13 @@
 - **路径记忆**：用户设置的“录像根目录”和“导出路径”会自动保存到同目录下的 `config.json` 文件中，下次启动时自动加载。
 - **日志记录**：程序运行日志保存在同目录下的 `replay_parser.log` 文件中，便于排查问题。
 
+### CLI 版本
+- **命令行操作**：支持通过终端执行解析、导出、导入等操作，适合脚本集成或批量处理。
+- **灵活过滤**：可根据模式、日期、结果、地图、逃生人数等条件过滤录像。
+- **批量导出**：支持按条件批量导出多个录像为ZIP文件。
+- **多种输出格式**：解析结果可导出为 CSV 或 JSON 格式。
+- **无配置记忆**：所有路径需通过命令行参数指定，不保存配置文件（与 GUI 设计一致）。
+
 ---
 
 ## 系统要求
@@ -27,7 +35,7 @@
 - Python 3.7 或更高版本（若直接运行源码）
 - 依赖库：
   - `pymongo`（提供 `bson` 模块，用于反序列化游戏数据）
-  - `tkinter`（Python 标准库，用于 GUI）
+  - `tkinter`（Python 标准库，用于 GUI，仅 GUI 版本需要）
 
 ---
 
@@ -35,7 +43,10 @@
 
 ### 方式一：直接运行 Python 源码
 
-1. **克隆或下载本项目**，得到 `extraction_of_IdentityV_replays.py` 文件。
+1. **克隆或下载本项目**，得到以下文件：
+   - `IdentityV_Replay_Parser_GUI.py`（GUI 主程序）
+   - `IdentityV_Replay_Parser_CLI.py`（CLI 主程序）
+   - `README.md`（本文档）
 
 2. **安装依赖**（建议使用虚拟环境）：
    ```bash
@@ -45,30 +56,42 @@
    pip install pymongo -i https://pypi.tuna.tsinghua.edu.cn/simple
    ```
 
-3. **运行程序**：
+3. **运行 GUI 版本**：
    ```bash
    python IdentityV_Replay_Parser_GUI.py
    ```
 
+4. **运行 CLI 版本**（查看帮助）：
+   ```bash
+   python IdentityV_Replay_Parser_CLI.py --help
+   ```
+
 ### 方式二：打包为独立可执行文件（无需 Python 环境）
 
+#### GUI 版本打包
 1. 在虚拟环境中安装 PyInstaller：
    ```bash
    pip install pyinstaller
    ```
-
 2. 使用以下命令打包（需包含 `bson` 等隐藏导入）：
    ```bash
    pyinstaller --onefile --windowed --name "第五人格录像解析器" --hidden-import bson --hidden-import bson.objectid --hidden-import pymongo IdentityV_Replay_Parser_GUI.py
    ```
+3. 打包完成后，在 `dist` 文件夹中找到 `第五人格录像解析器.exe`，双击即可运行。
 
-3. 打包完成后，在 `dist` 文件夹中找到 `第五人格录像解析器.exe`，双击即可运行。建议将 exe 放在有写入权限的目录（如桌面、`D:\` 根目录）。
+#### CLI 版本打包
+```bash
+pyinstaller --onefile --name "IdentityV_Replay_Parser_CLI" --hidden-import bson --hidden-import bson.objectid --hidden-import pymongo IdentityV_Replay_Parser_CLI.py
+```
+生成的可执行文件 `IdentityV_Replay_Parser_CLI.exe` 可在命令行中直接调用。
 
 ---
 
 ## 使用方法
 
-### 主界面说明
+### GUI 版本使用说明
+
+#### 主界面说明
 
 - **录像根目录**：指定存放所有录像文件夹的父目录。游戏录像默认位于游戏安装目录下的 `Documents\video\` 文件夹内，该目录下包含多个以哈希值命名的子文件夹（每个子文件夹代表一场录像）。您需要选择这个父目录（例如 `D:\Program Files\dwrg2\Documents\video`），**而不是**具体的某个哈希文件夹。
 - **导出路径**：指定导出 ZIP 文件的默认保存目录。若为空，则每次导出时会弹出文件对话框。
@@ -77,7 +100,7 @@
 - **导出统计数据**：将列表中所有成功解析的录像信息导出为 CSV 文件，弹出对话框选择保存位置。
 - **导入ZIP**：选择之前导出的 ZIP 文件（格式需为 `哈希(描述).zip`），程序会将其解压到当前录像根目录，并自动更新 `vmap.txt`，使游戏能识别该录像。
 
-### 使用流程示例
+#### 使用流程示例
 
 1. 找到您的游戏录像父目录。通常路径为：
    - 如果游戏安装在 `D:\Program Files\dwrg2`，则录像父目录为 `D:\Program Files\dwrg2\Documents\video`。
@@ -93,9 +116,78 @@
 
 6. 如需分析所有录像数据，点击“导出统计数据”，保存为 CSV 后用 Excel 打开即可。
 
+### CLI 版本使用说明
+
+CLI 工具通过子命令提供功能，全局参数 `-v` 可开启详细日志。
+
+#### 全局帮助
+```bash
+python IdentityV_Replay_Parser_CLI.py --help
+```
+
+#### 子命令：`parse` —— 解析并显示/导出录像信息
+```bash
+python IdentityV_Replay_Parser_CLI.py parse <root_dir> [--export-csv FILE] [--export-json FILE] [--filter KEY=VALUE] [--show-errors]
+```
+- `root_dir`：录像根目录（必需）。
+- `--export-csv FILE`：将统计数据导出为 CSV 文件。
+- `--export-json FILE`：将统计数据导出为 JSON 文件。
+- `--filter KEY=VALUE`：过滤条件，可多次使用（例如 `--filter result=四抓 --filter map=军工厂`）。支持以下键：
+  - `mode`：游戏模式（子串匹配）
+  - `date`：日期（如“3月5日”）
+  - `time`：时间（如“20-30”）
+  - `result`：结果（四抓、三抓、平局、三跑、四跑）
+  - `map`：地图名称
+  - `escape`：逃生人数（整数）
+- `--show-errors`：显示解析失败的录像（默认只显示成功项）。
+
+**示例**：
+```bash
+# 解析并显示所有录像
+python IdentityV_Replay_Parser_CLI.py parse "D:\Program Files\dwrg2\Documents\video"
+
+# 解析并导出为 CSV，只显示结果为“四抓”的录像
+python IdentityV_Replay_Parser_CLI.py parse "D:\Program Files\dwrg2\Documents\video" --export-csv stats.csv --filter result=四抓
+```
+
+#### 子命令：`export` —— 导出录像为 ZIP 文件
+```bash
+python IdentityV_Replay_Parser_CLI.py export <root_dir> --output-dir DIR [--filter KEY=VALUE] [--hash HASH] [--force]
+```
+- `root_dir`：录像根目录（必需）。
+- `--output-dir, -o DIR`：指定 ZIP 文件输出目录（默认为当前目录）。
+- `--filter KEY=VALUE`：过滤条件，决定导出哪些录像（与 parse 相同）。
+- `--hash HASH`：按哈希值导出单个录像（优先级高于 filter）。
+- `--force, -f`：若 ZIP 文件已存在，则覆盖（默认询问）。
+
+**示例**：
+```bash
+# 导出所有录像到 ./backup 目录
+python IdentityV_Replay_Parser_CLI.py export "D:\Program Files\dwrg2\Documents\video" -o ./backup
+
+# 按条件导出（地图为“军工厂”且结果为“四抓”）
+python IdentityV_Replay_Parser_CLI.py export "D:\Program Files\dwrg2\Documents\video" -o ./zips --filter map=军工厂 --filter result=四抓
+
+# 导出单个录像（指定哈希）
+python IdentityV_Replay_Parser_CLI.py export "D:\Program Files\dwrg2\Documents\video" --hash 306779587 -o ./single
+```
+
+#### 子命令：`import` —— 导入 ZIP 文件到录像目录
+```bash
+python IdentityV_Replay_Parser_CLI.py import <root_dir> <zip_file> [--force]
+```
+- `root_dir`：录像根目录（必需）。
+- `zip_file`：要导入的 ZIP 文件路径。
+- `--force, -f`：若目标文件夹已存在，则覆盖（默认报错）。
+
+**示例**：
+```bash
+python IdentityV_Replay_Parser_CLI.py import "D:\Program Files\dwrg2\Documents\video" ./backup/306779587(排位模式-3月5日-20-30-15-四抓-军工厂).zip --force
+```
+
 ---
 
-## 配置文件说明
+## 配置文件说明（仅 GUI）
 
 程序首次运行后会在同目录下生成 `config.json` 文件，内容示例如下：
 
@@ -122,7 +214,7 @@
 - **原因**：临时目录与目标目录不在同一驱动器，`os.rename` 无法跨驱动器移动文件。
 - **解决**：最新代码已使用 `shutil.move` 替代 `rename`，可自动处理跨驱动器移动。如果仍遇到此错误，请确保代码已更新至最新版本。
 
-### 2. 打包后的 exe 无法记忆路径
+### 2. 打包后的 exe 无法记忆路径（仅 GUI）
 - **原因**：打包时未正确处理配置文件路径，或 exe 所在目录无写入权限。
 - **解决**：确认代码中使用了 `get_base_dir()` 函数获取 exe 所在目录（已内置）。建议将 exe 放在用户文件夹（如桌面）运行，避免放在系统保护目录（如 `C:\Program Files`）。首次运行后应能看到同目录下生成 `config.json`。
 
@@ -137,12 +229,17 @@
   - 导入的 ZIP 不是由本工具导出的，或内部结构损坏。
 - **建议**：导入后重启游戏，查看程序日志确认 `vmap.txt` 已成功更新。若仍有问题，可手动检查录像根目录下是否存在对应的哈希文件夹及 `game_info.txt` 等文件。
 
-### 5. 如何添加新的地图或模式映射？
-- 打开源码，找到 `MAP_NAMES` 和 `MODE_NAMES` 字典，按格式添加新的 ID 和对应名称。例如：
-  ```python
-  MAP_NAMES[999] = "新地图"
-  MODE_NAMES[888] = "新模式"
-  ```
+### 5. CLI 版本如何过滤录像？
+- 使用 `--filter` 参数，格式为 `--filter key=value`，例如 `--filter result=四抓`。多个条件为 AND 关系。支持键：`mode`、`date`、`time`、`result`、`map`、`escape`。
+
+### 6. CLI 版本导出 ZIP 时文件名包含中文，乱码怎么办？
+- 现代终端（如 Windows Terminal、PowerShell 7+）通常支持 UTF-8，可正常显示。若在旧版 CMD 中出现乱码，不影响文件实际内容，文件名编码为 UTF-8。
+
+### 7. 如何添加新的地图或模式映射？
+- 打开 `IdentityV_Replay_Parser_GUI.py` 源码，找到 `MAP_NAMES` 和 `MODE_NAMES` 字典，按格式添加新的 ID 和对应名称。CLI 工具会直接从该文件导入，无需单独修改。
+
+### 8. CLI 脚本导入 GUI 模块失败怎么办？
+- CLI 脚本 `IdentityV_Replay_Parser_CLI.py` 需要从 `IdentityV_Replay_Parser_GUI.py` 导入核心组件。请确保两个文件位于同一目录，且文件名完全一致。如果您重命名了文件，请同时修改 CLI 脚本中的 `import` 语句。
 
 ---
 
@@ -150,7 +247,7 @@
 
 本项目目前为 **v1.0 版本**，核心功能已实现并可正常使用，但仍有以下方面有待完善。欢迎社区贡献代码或提出建议：
 
-- **界面优化**：当前界面基于 Tkinter，较为朴素，未来可考虑使用更现代的 GUI 框架（如 PyQt）或美化主题。
+- **界面优化**：当前 GUI 界面基于 Tkinter，较为朴素，未来可考虑使用更现代的 GUI 框架（如 PyQt）或美化主题。
 - **异常处理**：部分边缘情况（如文件损坏、权限不足）的提示可能不够友好，错误处理可进一步细化。
 - **游戏版本兼容性**：游戏更新可能导致 `res_type` 等字段含义变化，目前需手动修改 `ESCAPE_RES_TYPES` 常量。未来可增加配置界面或自动检测机制。
 - **性能优化**：当录像数量极大（数百个）时，解析和列表渲染可能稍慢，可考虑异步加载或分页。
@@ -165,7 +262,7 @@
 
 ## 更新日志
 
-- **v1.0**（当前）：初始版本，支持解析录像、导出ZIP、导出CSV、导入ZIP（含vmap更新）、路径记忆。
+- **v1.0**（当前）：初始版本，支持解析录像、导出ZIP、导出CSV、导入ZIP（含vmap更新）、路径记忆（GUI），并增加 CLI 版本。
 
 ---
 
