@@ -80,17 +80,13 @@
 #### GUI 版本打包
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name "第五人格录像解析器" \
-  --hidden-import bson --hidden-import bson.objectid --hidden-import pymongo \
-  IdentityV_Replay_Parser_GUI.py
+pyinstaller --onefile --windowed --name "第五人格录像解析器" --hidden-import bson --hidden-import bson.objectid --hidden-import pymongo IdentityV_Replay_Parser_GUI.py
 ```
 生成的可执行文件位于 `dist` 文件夹中。
 
 #### CLI 版本打包
 ```bash
-pyinstaller --onefile --name "IdentityV_Replay_Parser_CLI" \
-  --hidden-import bson --hidden-import bson.objectid --hidden-import pymongo \
-  IdentityV_Replay_Parser_CLI.py
+pyinstaller --onefile --name "IdentityV_Replay_Parser_CLI" --hidden-import bson --hidden-import bson.objectid --hidden-import pymongo IdentityV_Replay_Parser_CLI.py
 ```
 
 **注意**：打包时需确保 `idv_replay_core.py` 与主程序在同一目录，或使用 `--add-data` 将其包含。
