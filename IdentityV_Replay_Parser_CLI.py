@@ -2,38 +2,38 @@
 """
 Command-line interface for parsing Identity V replay folders.
 
-Reuses core components from the GUI script (IdentityV_Replay_Parser_GUI.py)
+Reuses core components from the shared module (idv_replay_core.py)
 to avoid duplication of constants and parsing logic.
 """
 
 import argparse
 import csv
-import datetime
 import json
 import logging
-import pickle
 import shutil
 import sys
 import tempfile
-import time
 import zipfile
 from pathlib import Path
-from typing import Optional, List
+from typing import List
 
-# Import core components from GUI script (assumed to be in the same directory)
+# Import core components from shared module
 try:
-    from IdentityV_Replay_Parser_GUI import (
+    from idv_replay_core import (
         ReplayParser,
         ReplayInfo,
         MAP_NAMES,
         MODE_NAMES,
         ESCAPE_RES_TYPES,
         find_replay_folders,
-        parse_all_replays
+        parse_all_replays,
+        calculate_folder_size,
+        get_timestamp_from_folder,
+        update_vmap
     )
 except ImportError as e:
-    print("Error: Could not import from IdentityV_Replay_Parser_GUI.py", file=sys.stderr)
-    print("Make sure the GUI script is in the same directory.", file=sys.stderr)
+    print("Error: Could not import from idv_replay_core.py", file=sys.stderr)
+    print("Make sure the core module is in the same directory.", file=sys.stderr)
     # Define missing names to avoid static analysis warnings (program will exit anyway)
     ReplayParser = None
     ReplayInfo = None
@@ -42,92 +42,14 @@ except ImportError as e:
     ESCAPE_RES_TYPES = None
     find_replay_folders = None
     parse_all_replays = None
+    calculate_folder_size = None
+    get_timestamp_from_folder = None
+    update_vmap = None
     sys.exit(1)
 
-# =============================================================================
-# Helper functions (originally from GUI's ReplayParserGui, kept here for CLI)
-# =============================================================================
-
-def _calculate_folder_size(folder_path: Path) -> int:
-    """Calculate total size (in bytes) of all files in a folder recursively."""
-    total = 0
-    for file in folder_path.rglob('*'):
-        if file.is_file():
-            total += file.stat().st_size
-    return total
-
-
-def _get_timestamp_from_folder(folder_path: Path) -> Optional[float]:
-    """Attempt to extract Unix timestamp from game_save_time inside game_info.txt."""
-    game_info = folder_path / "game_info.txt"
-    if not game_info.exists():
-        return None
-    try:
-        with open(game_info, 'rb') as f:
-            data = pickle.load(f)
-        save_time = data.get("game_save_time")
-        if save_time and isinstance(save_time, str):
-            parts = save_time.split("_")
-            if len(parts) == 6:
-                year, month, day, hour, minute, second = map(int, parts)
-                dt = datetime.datetime(year, month, day, hour, minute, second)
-                return dt.timestamp()
-    except Exception as _:
-        logging.debug(f"Failed to extract timestamp from {folder_path}: {_}")
-    return None
-
-
-def update_vmap(root_path: Path, hash_value: str, folder_path: Path) -> None:
-    """
-    Update the vmap.txt file in the root directory with the new replay entry.
-    Adds to both 'saved' and 'cached' sections for compatibility.
-    """
-    vmap_path = root_path / "vmap.txt"
-    vmap_data = {
-        "saved": {},
-        "cached": {},
-        "last_cached": {},
-        "delete": {},
-        "hide_saved": {},
-        "hide_cached": {}
-    }
-
-    # Load existing vmap.txt if present
-    if vmap_path.exists():
-        try:
-            with open(vmap_path, 'rb') as f:
-                loaded = pickle.load(f)
-                if isinstance(loaded, dict):
-                    vmap_data = loaded
-                else:
-                    logging.warning("vmap.txt has unexpected format, will be overwritten with default.")
-        except Exception as _:
-            logging.error(f"Failed to load existing vmap.txt: {_}, will create new.")
-
-    # Ensure all expected keys exist
-    for key in list(vmap_data.keys()):
-        if key not in vmap_data:
-            vmap_data[key] = {}
-
-    folder_size = _calculate_folder_size(folder_path)
-    ts = _get_timestamp_from_folder(folder_path)
-    if ts is None:
-        ts = time.time()
-
-    entry = {"timestamp": ts, "file size": float(folder_size)}
-    vmap_data["saved"][hash_value] = entry
-    vmap_data["cached"][hash_value] = entry
-
-    try:
-        with open(vmap_path, 'wb') as f:
-            pickle.dump(vmap_data, f)
-        logging.info(f"Updated vmap.txt for {hash_value}")
-    except Exception as _:
-        logging.error(f"Failed to write vmap.txt: {_}")
-
 
 # =============================================================================
-# CLI-specific export/import functions
+# CLI-specific export/import functions (still require core helpers)
 # =============================================================================
 
 def export_replay_as_zip(replay_info: ReplayInfo, root_path: Path, output_dir: Path, force: bool = False) -> Path:
@@ -226,7 +148,7 @@ def import_zip(zip_path: Path, root_path: Path, force: bool = False) -> str:
                         dest.unlink()
                 shutil.move(str(item), str(dest))
 
-    # Update vmap.txt
+    # Update vmap.txt using core function
     update_vmap(root_path, hash_part, target_folder)
 
     return hash_part
